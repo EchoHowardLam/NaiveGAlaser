@@ -9,7 +9,7 @@
 
 using namespace std;
 
-const char Core::charFace[8] = {'|', '-', '|', '-', '/', '\\', '/', '\\'};
+const char Core::charFace[8] = {'|', '=', '|', '=', '/', '\\', '/', '\\'};
 const int Core::dirToCoord[8][2] = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}, {1, -1}, {1, 1}, {-1, 1}, {-1, -1}};
 const string Core::geneOpName[7] = {"0 And : ", "1 Or  : ", "2 Sub : ", "3 LSHT: ", "4 RSHT: ", "5 NUL : ", "6 XOR : "};
 
@@ -19,7 +19,7 @@ Core::Core()
     mapH = 20;
     simTime = 0;
     srand(time(NULL));
-    scrn.Initialize(mapW + 40, mapH + 2, 1, 2);
+    scrn.Initialize(mapW + 40, mapH + 3, 1, 2);
     ready = false;
     poolSize = 0;
     geneSize = 0;
@@ -34,29 +34,93 @@ Core::~Core()
 
 void Core::vanillaSim()
 {
-    if (!ready){vanillaSimInit(10, 5);}
+    if (!ready){vanillaSimInit(50, 5);}
     gotoxy(1, 1);
     cout << "AI: laser avoidance";
     movDirBlock = 0;
-    for (int i = 0; i < poolSize; i++)
+    int tested[poolSize];
+    int fitness[3];
+    int exchg, curTested;
+    int best, second, last;
+    for (int i = 0; i < poolSize; i++) tested[i] = i;
+    while (1)
     {
-        fieldCleanUp();
-        scrn.ClrBuffer();
-        scrn.UpdateScreen();
-        bool alive = true;
-        for (simTime = 0; alive; simTime++)
+        for (int i = 0; i < 3; i++)
         {
-            updateLaser();
-            vanillaLaserSpawn(100);
-            if (updateBot(i)) alive = false;
-            scrn.ClrBuffer();
-            updateScrn(i);
-            scrn.UpdateScreen();
-            Sleep(100);
-            //pause();
-            movDirBlock = (!movDirBlock);
+            fitness[i] = 0;
+            exchg = rand() % poolSize;
+            if (exchg != i)
+            {
+                tested[i] ^= tested[exchg];
+                tested[exchg] ^= tested[i];
+                tested[i] ^= tested[exchg];
+            }
         }
-        Sleep(500);
+        for (curTested = 0; curTested < 3; curTested++)
+        {
+            fieldCleanUp();
+            bool alive;
+            for (simTime = 0, alive = true; alive; simTime++)
+            {
+                updateLaser();
+                vanillaLaserSpawn(100);
+                if (updateBot(tested[curTested])) alive = false;
+                movDirBlock = (!movDirBlock);
+            }
+            fitness[curTested] = simTime;
+            for (simTime = 0, alive = true; alive; simTime++)
+            {
+                updateLaser();
+                vanillaLaserSpawn(100);
+                if (updateBot(tested[curTested])) alive = false;
+                movDirBlock = (!movDirBlock);
+            }
+            fitness[curTested] = (fitness[curTested] + simTime) / 2;
+            if (fitness[curTested] >= 50)
+            {
+                fieldCleanUp();
+                scrn.ClrBuffer();
+                scrn.UpdateScreen();
+                bool alive = true;
+                for (simTime = 0; alive; simTime++)
+                {
+                    updateLaser();
+                    vanillaLaserSpawn(100);
+                    if (updateBot(tested[curTested])) alive = false;
+                    scrn.ClrBuffer();
+                    updateScrn(tested[curTested]);
+                    scrn.UpdateScreen();
+                    Sleep(100);
+                    movDirBlock = (!movDirBlock);
+                }
+                Sleep(500);
+            }
+        }
+        if (fitness[1] > fitness[0])
+        {
+            best = 1;
+            second = 0;
+        }else{
+            best = 0;
+            second = 1;
+        }
+        if (fitness[2] > fitness[second])
+        {
+            last = second;
+            if (fitness[2] > fitness[best])
+            {
+                second = best;
+                best = 2;
+            }else{
+                second = 2;
+            }
+        }else{
+            last = 2;
+        }
+        crossOver(tested[best], tested[second], tested[last]);
+        mutation(best, 1);
+        mutation(second, 1);
+        mutation(last, 2);
     }
     ready = false;
     return;
@@ -180,7 +244,7 @@ bool Core::updateBot(int geneID)
             objMap[bot.y + i][bot.x + j] &= removeSelf;
     updateBotSensor();
     updateBotAI(geneID);
-    if (movDirBlock)
+    //if (movDirBlock)
     {
         if ((bot.opResult[geneSize] & 1) ^ (bot.opResult[geneSize] & 4))
         {
@@ -191,7 +255,7 @@ bool Core::updateBot(int geneID)
                 bot.y++;
             }
         }
-    }else{
+    }/*else*/{
         if ((bot.opResult[geneSize] & 2) ^ (bot.opResult[geneSize] & 8))
         {
             if (bot.opResult[geneSize] & 8)
@@ -302,9 +366,9 @@ void Core::updateScrn(int geneID)
     }
     if (geneID >= poolSize) return;
     // Begin Measurements
-    output = string(8, '_');
+    output = string(INPUTSIZE, '_');
     int sensorV = bot.sensor;
-    for (int i = 7; i >= 0; i--)
+    for (int i = INPUTSIZE - 1; i >= 0; i--)
     {
         output[i] = (sensorV & 1)? '1': '0';
         sensorV >>= 1;
@@ -315,17 +379,17 @@ void Core::updateScrn(int geneID)
     string outValue;
     for (int p = 0; p < geneSize; p++)
     {
-        outValue = string(8, '_');
+        outValue = string(USEFULGENESIZE, '_');
         int opV = gene[geneID][p];
-        for (int i = 7; i >= 0; i--)
+        for (int i = USEFULGENESIZE - 1; i >= 0; i--)
         {
             outValue[i] = (opV & 1)? '1': '0';
             opV >>= 1;
         }
         output = geneOpName[geneOp[geneID][p]] + outValue + " -> ";
-        outValue = string(8, '_');
+        outValue = string(USEFULGENESIZE, '_');
         opV = bot.opResult[p + 1];
-        for (int i = 7; i >= 0; i--)
+        for (int i = USEFULGENESIZE - 1; i >= 0; i--)
         {
             outValue[i] = (opV & 1)? '1': '0';
             opV >>= 1;
@@ -343,6 +407,16 @@ void Core::updateScrn(int geneID)
     }
     output = "Round time: " + outValue;
     scrn.PushStr(output, 1, mapH + 1);
+
+    outValue = string(32, '_');
+    opV = geneID;
+    for (int i = 31; i >= 0; i--)
+    {
+        outValue[i] = (opV % 10) + '0';
+        opV /= 10;
+    }
+    output = "ID: " + outValue;
+    scrn.PushStr(output, 1, mapH + 2);
     // End Measurement
     return;
 }
@@ -353,6 +427,45 @@ void Core::randGene(int geneID)
     {
         gene[geneID][i] = rand();
         geneOp[geneID][i] = rand() % 7;
+    }
+    return;
+}
+
+void Core::crossOver(int goodGeneID, int goodGeneID2, int badGeneID)
+{
+    if (rand() % 2)
+    {
+        goodGeneID ^= goodGeneID2;
+        goodGeneID2 ^= goodGeneID;
+        goodGeneID ^= goodGeneID2;
+    }
+    int critPos = rand() % (geneSize - 1);
+    int i;
+    for (i = 0; i <= critPos; i++)
+    {
+        gene[badGeneID][i] = gene[goodGeneID][i];
+        geneOp[badGeneID][i] = geneOp[goodGeneID][i];
+    }
+    for (; i < geneSize; i++)
+    {
+        gene[badGeneID][i] = gene[goodGeneID2][i];
+        geneOp[badGeneID][i] = geneOp[goodGeneID2][i];
+    }
+    return;
+}
+
+void Core::mutation(int geneID, int randPercentage)
+{
+    if (rand() % 100 < randPercentage)
+    {
+        int mutPos = rand() % geneSize;
+        if (rand())
+        {
+            gene[geneID][mutPos] = rand();
+            geneOp[geneID][mutPos] = rand() % 7;
+        }else{
+            gene[geneID][mutPos] ^= (1 << (rand() % USEFULGENESIZE));
+        }
     }
     return;
 }

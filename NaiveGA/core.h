@@ -1,6 +1,9 @@
 #ifndef CORE_H_INCLUDED
 #define CORE_H_INCLUDED
 
+#define INPUTSIZE 8
+#define USEFULGENESIZE 8
+
 #include <string>
 
 #include "consoleGL.h"
@@ -50,6 +53,8 @@ private:
     void updateBotAI(int geneID);
     void updateScrn(int geneID);
     void randGene(int geneID);
+    void crossOver(int goodGeneID, int goodGeneID2, int badGeneID);
+    void mutation(int geneID, int randPercentage);
     int processGeneSeg(int input, int geneID, int genePos);
 };
 

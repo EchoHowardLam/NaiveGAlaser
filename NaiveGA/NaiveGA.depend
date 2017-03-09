@@ -32,3 +32,37 @@
 	<stdlib.h>
 	<time.h>
 
+1488941266 source:c:\users\isle\data\cb\zdm\naivegalaser\naivega\console_graphic_i.cpp
+	"console_graphic.h"
+
+1488941266 c:\users\isle\data\cb\zdm\naivegalaser\naivega\console_graphic.h
+	<windows.h>
+	<conio.h>
+	<sstream>
+	<string>
+
+1488941266 source:c:\users\isle\data\cb\zdm\naivegalaser\naivega\consolegl_i.cpp
+	<cstdio>
+	"consoleGL.h"
+
+1488941266 c:\users\isle\data\cb\zdm\naivegalaser\naivega\consolegl.h
+	<string>
+	"console_graphic.h"
+
+1488941611 source:c:\users\isle\data\cb\zdm\naivegalaser\naivega\main.cpp
+	<iostream>
+	"consoleGL.h"
+	"core.h"
+
+1489021247 c:\users\isle\data\cb\zdm\naivegalaser\naivega\core.h
+	<string>
+	"consoleGL.h"
+
+1488941664 source:c:\users\isle\data\cb\zdm\naivegalaser\naivega\core.cpp
+	"core.h"
+	<iostream>
+	<string>
+	<windows.h>
+	<stdlib.h>
+	<time.h>
+
