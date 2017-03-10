@@ -1,0 +1,68 @@
+# depslib dependency file v1.0
+1439530972 source:c:\users\lamyipfu\desktop\cb\zdm\naivega\console_graphic_i.cpp
+	"console_graphic.h"
+
+1439530972 c:\users\lamyipfu\desktop\cb\zdm\naivega\console_graphic.h
+	<windows.h>
+	<conio.h>
+	<sstream>
+	<string>
+
+1440785214 source:c:\users\lamyipfu\desktop\cb\zdm\naivega\consolegl_i.cpp
+	<cstdio>
+	"consoleGL.h"
+
+1440953334 c:\users\lamyipfu\desktop\cb\zdm\naivega\consolegl.h
+	<string>
+	"console_graphic.h"
+
+1488699880 source:c:\users\lamyipfu\desktop\cb\zdm\naivega\main.cpp
+	<iostream>
+	"consoleGL.h"
+	"core.h"
+
+1488935142 c:\users\lamyipfu\desktop\cb\zdm\naivega\core.h
+	<string>
+	"consoleGL.h"
+
+1488896032 source:c:\users\lamyipfu\desktop\cb\zdm\naivega\core.cpp
+	"core.h"
+	<string>
+	<windows.h>
+	<stdlib.h>
+	<time.h>
+
+1488941266 source:c:\users\isle\data\cb\zdm\naivegalaser\naivega\console_graphic_i.cpp
+	"console_graphic.h"
+
+1488941266 c:\users\isle\data\cb\zdm\naivegalaser\naivega\console_graphic.h
+	<windows.h>
+	<conio.h>
+	<sstream>
+	<string>
+
+1488941266 source:c:\users\isle\data\cb\zdm\naivegalaser\naivega\consolegl_i.cpp
+	<cstdio>
+	"consoleGL.h"
+
+1488941266 c:\users\isle\data\cb\zdm\naivegalaser\naivega\consolegl.h
+	<string>
+	"console_graphic.h"
+
+1488941611 source:c:\users\isle\data\cb\zdm\naivegalaser\naivega\main.cpp
+	<iostream>
+	"consoleGL.h"
+	"core.h"
+
+1489021247 c:\users\isle\data\cb\zdm\naivegalaser\naivega\core.h
+	<string>
+	"consoleGL.h"
+
+1488941664 source:c:\users\isle\data\cb\zdm\naivegalaser\naivega\core.cpp
+	"core.h"
+	<iostream>
+	<string>
+	<windows.h>
+	<stdlib.h>
+	<time.h>
+
