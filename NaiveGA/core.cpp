@@ -19,11 +19,12 @@ Core::Core()
     mapH = 20;
     simTime = 0;
     srand(time(NULL));
-    scrn.Initialize(mapW + 40, mapH + 3, 1, 2);
+    scrn.Initialize(mapW + 50, mapH + 4, 1, 2);
     ready = false;
     poolSize = 0;
     geneSize = 0;
     movDirBlock = 0;
+    topFitness = 0;
 }
 
 Core::~Core()
@@ -34,7 +35,7 @@ Core::~Core()
 
 void Core::vanillaSim()
 {
-    if (!ready){vanillaSimInit(50, 5);}
+    if (!ready){vanillaSimInit(20, OUTPUTSIZE * 2 + 1);}
     gotoxy(1, 1);
     cout << "AI: laser avoidance";
     movDirBlock = 0;
@@ -60,23 +61,22 @@ void Core::vanillaSim()
         {
             fieldCleanUp();
             bool alive;
-            for (simTime = 0, alive = true; alive; simTime++)
+            fitness[curTested] = 0;
+            for (int i = 0; i < 3; i++)
             {
-                updateLaser();
-                vanillaLaserSpawn(100);
-                if (updateBot(tested[curTested])) alive = false;
-                movDirBlock = (!movDirBlock);
+                for (simTime = 0, alive = true; alive; simTime++)
+                {
+                    updateLaser();
+                    vanillaLaserSpawn(100);
+                    if (updateBot(tested[curTested])) alive = false;
+                    movDirBlock = (!movDirBlock);
+                }
+                fitness[curTested] += simTime;
             }
-            fitness[curTested] = simTime;
-            for (simTime = 0, alive = true; alive; simTime++)
-            {
-                updateLaser();
-                vanillaLaserSpawn(100);
-                if (updateBot(tested[curTested])) alive = false;
-                movDirBlock = (!movDirBlock);
-            }
-            fitness[curTested] = (fitness[curTested] + simTime) / 2;
-            if (fitness[curTested] >= 50)
+            //Sleep(100);
+            fitness[curTested] /= 3;
+            if (fitness[curTested] > topFitness) topFitness = fitness[curTested];
+            if (fitness[curTested] >= topFitness || fitness[curTested] >= 90)
             {
                 fieldCleanUp();
                 scrn.ClrBuffer();
@@ -91,6 +91,7 @@ void Core::vanillaSim()
                     updateScrn(tested[curTested]);
                     scrn.UpdateScreen();
                     Sleep(100);
+                    //pause();
                     movDirBlock = (!movDirBlock);
                 }
                 Sleep(500);
@@ -117,10 +118,18 @@ void Core::vanillaSim()
         }else{
             last = 2;
         }
-        crossOver(tested[best], tested[second], tested[last]);
-        mutation(best, 1);
-        mutation(second, 1);
-        mutation(last, 2);
+        if (MATRIXMODE)
+        {
+            paraCrossOver(tested[best], tested[second], tested[last]);
+            //paraMutation(best, 2);
+            paraMutation(second, 1);
+            paraMutation(last, 10);
+        }else{
+            crossOver(tested[best], tested[second], tested[last]);
+            //mutation(best, 2);
+            mutation(second, 1);
+            mutation(last, 10);
+        }
     }
     ready = false;
     return;
@@ -161,25 +170,26 @@ void Core::vanillaSimInit(int pool_size, int gene_size)
     {
         gene[i] = new int[gene_size];
         geneOp[i] = new int[gene_size];
-        randGene(i);
+        randMatrixGene(i);
     }
     movDirBlock = 0;
+    topFitness = 0;
     bot.opResult = new int[geneSize + 1];
     return;
 }
 
 void Core::vanillaLaserSpawn(int randSize)
 {
-    for (int i = 0; i < mapW; i++)
+    for (int i = 2; i < mapW - 2; i++)
         if (!(rand() % randSize))
             objMap[0][i] |= 4;
-    for (int i = 0; i < mapW; i++)
+    for (int i = 2; i < mapW - 2; i++)
         if (!(rand() % randSize))
             objMap[mapH - 1][i] |= 1;
-    for (int i = 0; i < mapH; i++)
+    for (int i = 2; i < mapH - 2; i++)
         if (!(rand() % randSize))
             objMap[i][0] |= 2;
-    for (int i = 0; i < mapH; i++)
+    for (int i = 2; i < mapH - 2; i++)
         if (!(rand() % randSize))
             objMap[i][mapW - 1] |= 8;
     return;
@@ -243,22 +253,30 @@ bool Core::updateBot(int geneID)
         for (int j = -1; j < 2; j++)
             objMap[bot.y + i][bot.x + j] &= removeSelf;
     updateBotSensor();
-    updateBotAI(geneID);
-    //if (movDirBlock)
+    if (MATRIXMODE)
     {
-        if ((bot.opResult[geneSize] & 1) ^ (bot.opResult[geneSize] & 4))
+        updateBotMatrixAI(geneID);
+    }else{
+        updateBotAI(geneID);
+    }
+    movDirBlock = 1;
+    if (movDirBlock)
+    {
+        if ((bot.opResult[geneSize] & UP_INDEX) ^ (bot.opResult[geneSize] & DOWN_INDEX))
         {
-            if (bot.opResult[geneSize] & 1)
+            if (bot.opResult[geneSize] & UP_INDEX)
             {
                 if (bot.y > 3) bot.y--;
             }else if(bot.y < mapH - 4){
                 bot.y++;
             }
         }
-    }/*else*/{
-        if ((bot.opResult[geneSize] & 2) ^ (bot.opResult[geneSize] & 8))
+    }
+    if (movDirBlock)
+    {
+        if ((bot.opResult[geneSize] & RIGHT_INDEX) ^ (bot.opResult[geneSize] & LEFT_INDEX))
         {
-            if (bot.opResult[geneSize] & 8)
+            if (bot.opResult[geneSize] & LEFT_INDEX)
             {
                 if (bot.x > 3) bot.x--;
             }else if(bot.x < mapW - 4){
@@ -287,10 +305,16 @@ void Core::updateBotSensor()
     bot.sensor = 0;
     bool detected = false;
     int x, y;
-    for (int d = 0; d < 8; d++)
+    for (int d = 0; d < 12; d++)
     {
-        x = bot.x + dirToCoord[d][0];
-        y = bot.y + dirToCoord[d][1];
+        if (d < 4)
+        {
+            x = bot.x + dirToCoord[d][0];
+            y = bot.y + dirToCoord[d][1];
+        }else{
+            x = bot.x + dirToCoord[d - 4][0];
+            y = bot.y + dirToCoord[d - 4][1];
+        }
         detected = false;
         if (d < 4)
         {
@@ -322,6 +346,20 @@ void Core::updateBotAI(int geneID)
     {
         bot.opResult[p + 1] = processGeneSeg(bot.opResult[p], geneID, p);
     }
+    return;
+}
+
+void Core::updateBotMatrixAI(int geneID)
+{
+    bot.opResult[0] = bot.sensor; // Separate them to make the code more readable, but they are supposed to refer to the same value when they are used
+    int e = OUTPUTSIZE * 2;
+    bot.opResult[1] = 0;
+    bot.opResult[OUTPUTSIZE + 1] = 0;
+    for (int p = 0; p < e; p++)
+    {
+        bot.opResult[((p / OUTPUTSIZE) * OUTPUTSIZE) + 1] |= ((processGeneSeg(bot.opResult[0], geneID, p) != 0) << (p % OUTPUTSIZE));
+    }
+    bot.opResult[OUTPUTSIZE * 2 + 1] = processGeneSegDirectly(bot.opResult[1], bot.opResult[OUTPUTSIZE + 1], 2);
     return;
 }
 
@@ -364,8 +402,19 @@ void Core::updateScrn(int geneID)
         }
         scrn.PushStr(output, 1, i + 1);
     }
+    if (MATRIXMODE)
+    {
+        updateMatrixDebugScrn(geneID);
+    }else{
+        updateDebugScrn(geneID);
+    }
+    return;
+}
+
+void Core::updateDebugScrn(int geneID)
+{
     if (geneID >= poolSize) return;
-    // Begin Measurements
+    string output;
     output = string(INPUTSIZE, '_');
     int sensorV = bot.sensor;
     for (int i = INPUTSIZE - 1; i >= 0; i--)
@@ -379,17 +428,17 @@ void Core::updateScrn(int geneID)
     string outValue;
     for (int p = 0; p < geneSize; p++)
     {
-        outValue = string(USEFULGENESIZE, '_');
+        outValue = string(INPUTSIZE, '_');
         int opV = gene[geneID][p];
-        for (int i = USEFULGENESIZE - 1; i >= 0; i--)
+        for (int i = INPUTSIZE - 1; i >= 0; i--)
         {
             outValue[i] = (opV & 1)? '1': '0';
             opV >>= 1;
         }
         output = geneOpName[geneOp[geneID][p]] + outValue + " -> ";
-        outValue = string(USEFULGENESIZE, '_');
+        outValue = string(OUTPUTSIZE, '_');
         opV = bot.opResult[p + 1];
-        for (int i = USEFULGENESIZE - 1; i >= 0; i--)
+        for (int i = OUTPUTSIZE - 1; i >= 0; i--)
         {
             outValue[i] = (opV & 1)? '1': '0';
             opV >>= 1;
@@ -417,7 +466,81 @@ void Core::updateScrn(int geneID)
     }
     output = "ID: " + outValue;
     scrn.PushStr(output, 1, mapH + 2);
-    // End Measurement
+
+    outValue = string(32, '_');
+    opV = topFitness;
+    for (int i = 31; i >= 0; i--)
+    {
+        outValue[i] = (opV % 10) + '0';
+        opV /= 10;
+    }
+    output = "Top fitness: " + outValue;
+    scrn.PushStr(output, 1, mapH + 3);
+    return;
+}
+
+void Core::updateMatrixDebugScrn(int geneID)
+{
+    if (geneID >= poolSize) return;
+    string output;
+    output = string(INPUTSIZE, '_');
+    int sensorV = bot.sensor;
+    for (int i = INPUTSIZE - 1; i >= 0; i--)
+    {
+        output[i] = (sensorV & 1)? '1': '0';
+        sensorV >>= 1;
+    }
+    output = "Sensor: " + output;
+    scrn.PushStr(output, mapW + 1, 1);
+
+    string outValue;
+    int e = OUTPUTSIZE * 2;
+    for (int p = 0; p < e; p++)
+    {
+        outValue = string(INPUTSIZE, '_');
+        int opV = gene[geneID][p];
+        for (int i = INPUTSIZE - 1; i >= 0; i--)
+        {
+            outValue[i] = (opV & 1)? '1': '0';
+            opV >>= 1;
+        }
+        output = outValue + ((bot.opResult[(p / OUTPUTSIZE) * OUTPUTSIZE + 1] & (1 << (p % OUTPUTSIZE)))? " :1: ": " :0: ");
+        if (p >= OUTPUTSIZE)
+        {
+            output += ((bot.opResult[OUTPUTSIZE * 2 + 1] & (1 << (p % OUTPUTSIZE)))? " :1: ": " :0: ");
+        }
+        scrn.PushStr(output, mapW + 1 + (p / OUTPUTSIZE) * (INPUTSIZE + 5), (p % OUTPUTSIZE) + 2);
+    }
+
+    outValue = string(32, '_');
+    int opV = simTime;
+    for (int i = 31; i >= 0; i--)
+    {
+        outValue[i] = (opV % 10) + '0';
+        opV /= 10;
+    }
+    output = "Round time: " + outValue;
+    scrn.PushStr(output, 1, mapH + 1);
+
+    outValue = string(32, '_');
+    opV = geneID;
+    for (int i = 31; i >= 0; i--)
+    {
+        outValue[i] = (opV % 10) + '0';
+        opV /= 10;
+    }
+    output = "ID: " + outValue;
+    scrn.PushStr(output, 1, mapH + 2);
+
+    outValue = string(32, '_');
+    opV = topFitness;
+    for (int i = 31; i >= 0; i--)
+    {
+        outValue[i] = (opV % 10) + '0';
+        opV /= 10;
+    }
+    output = "Top fitness: " + outValue;
+    scrn.PushStr(output, 1, mapH + 3);
     return;
 }
 
@@ -428,6 +551,19 @@ void Core::randGene(int geneID)
         gene[geneID][i] = rand();
         geneOp[geneID][i] = rand() % 7;
     }
+    return;
+}
+
+void Core::randMatrixGene(int geneID)
+{
+    int e = OUTPUTSIZE * 2;
+    for (int i = 0; i < e; i++)
+    {
+        gene[geneID][i] = rand();
+        geneOp[geneID][i] = 0;
+    }
+    gene[geneID][OUTPUTSIZE * 2 + 1] = 0;
+    geneOp[geneID][OUTPUTSIZE * 2 + 1] = 2;
     return;
 }
 
@@ -458,13 +594,56 @@ void Core::mutation(int geneID, int randPercentage)
 {
     if (rand() % 100 < randPercentage)
     {
-        int mutPos = rand() % geneSize;
-        if (rand())
+        int mutPos = 0;
+        if (rand() % 2)
         {
-            gene[geneID][mutPos] = rand();
-            geneOp[geneID][mutPos] = rand() % 7;
+            while (rand() % 2)
+            {
+                mutPos = rand() % geneSize;
+                gene[geneID][mutPos] = rand();
+                geneOp[geneID][mutPos] = rand() % 7;
+            }
         }else{
-            gene[geneID][mutPos] ^= (1 << (rand() % USEFULGENESIZE));
+            while (rand() % 2)
+            {
+                mutPos = rand() % geneSize;
+                gene[geneID][mutPos] ^= (1 << (rand() % INPUTSIZE));
+            }
+        }
+    }
+    return;
+}
+
+void Core::paraCrossOver(int goodGeneID, int goodGeneID2, int badGeneID)
+{
+    if (rand() % 2)
+    {
+        goodGeneID ^= goodGeneID2;
+        goodGeneID2 ^= goodGeneID;
+        goodGeneID ^= goodGeneID2;
+    }
+    int critPos = rand() % (geneSize - 1);
+    int i;
+    for (i = 0; i <= critPos; i++)
+    {
+        gene[badGeneID][i] = gene[goodGeneID][i];
+    }
+    for (; i < geneSize; i++)
+    {
+        gene[badGeneID][i] = gene[goodGeneID2][i];
+    }
+    return;
+}
+
+void Core::paraMutation(int geneID, int randPercentage)
+{
+    if (rand() % 100 < randPercentage)
+    {
+        int mutPos = 0;
+        while (rand() % 2)
+        {
+            mutPos = rand() % geneSize;
+            gene[geneID][mutPos] ^= (1 << (rand() % INPUTSIZE));
         }
     }
     return;
@@ -489,6 +668,28 @@ int Core::processGeneSeg(int input, int geneID, int genePos)
         break;
     case 6:
         return (input ^ segment);
+    }
+    return input;
+}
+
+int Core::processGeneSegDirectly(int input, int input2, int op)
+{
+    switch (op)
+    {
+    case 0:
+        return (input & input2);
+    case 1:
+        return (input | input2);
+    case 2:
+        return (input & (~input2));
+    case 3:
+        return (input << 1);
+    case 4:
+        return (input >> 1);
+    case 5:
+        break;
+    case 6:
+        return (input ^ input2);
     }
     return input;
 }

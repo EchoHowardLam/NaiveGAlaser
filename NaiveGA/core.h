@@ -1,8 +1,22 @@
 #ifndef CORE_H_INCLUDED
 #define CORE_H_INCLUDED
 
-#define INPUTSIZE 8
-#define USEFULGENESIZE 8
+#define MATRIXMODE 1
+
+#define INPUTSIZE 12
+#define OUTPUTSIZE 4
+
+#define UP_INDEX 1
+#define RIGHT_INDEX 2
+#define DOWN_INDEX 4
+#define LEFT_INDEX 8
+
+/*
+#define UP_INDEX 16
+#define RIGHT_INDEX 32
+#define DOWN_INDEX 64
+#define LEFT_INDEX 128
+*/
 
 #include <string>
 
@@ -36,6 +50,7 @@ private:
     int poolSize;
     int geneSize;
     int movDirBlock; // 0 Horizontal only 1 Vertical only
+    int topFitness;
     TestBot bot;
     static const int laserFilter = 255;
     static const int laserBit = 8;
@@ -51,11 +66,18 @@ private:
     bool updateBot(int geneID); // 0 safe 1 hit
     void updateBotSensor();
     void updateBotAI(int geneID);
+    void updateBotMatrixAI(int geneID);
     void updateScrn(int geneID);
+    void updateDebugScrn(int geneID);
+    void updateMatrixDebugScrn(int geneID);
     void randGene(int geneID);
+    void randMatrixGene(int geneID);
     void crossOver(int goodGeneID, int goodGeneID2, int badGeneID);
     void mutation(int geneID, int randPercentage);
+    void paraCrossOver(int goodGeneID, int goodGeneID2, int badGeneID);
+    void paraMutation(int geneID, int randPercentage);
     int processGeneSeg(int input, int geneID, int genePos);
+    int processGeneSegDirectly(int input, int input2, int op);
 };
 
 #endif // CORE_H_INCLUDED
