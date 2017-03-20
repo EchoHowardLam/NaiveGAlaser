@@ -10,6 +10,7 @@ int main()
 {
     clrscr();
     title("AI: Laser Avoidance");
+    resize_console(90, 25);
     cursor_visible(false);
     Core sim;
     sim.vanillaSim();

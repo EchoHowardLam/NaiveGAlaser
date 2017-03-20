@@ -49,16 +49,16 @@
 	<string>
 	"console_graphic.h"
 
-1488941611 source:c:\users\isle\data\cb\zdm\naivegalaser\naivega\main.cpp
+1489988165 source:c:\users\isle\data\cb\zdm\naivegalaser\naivega\main.cpp
 	<iostream>
 	"consoleGL.h"
 	"core.h"
 
-1489021247 c:\users\isle\data\cb\zdm\naivegalaser\naivega\core.h
+1490019260 c:\users\isle\data\cb\zdm\naivegalaser\naivega\core.h
 	<string>
 	"consoleGL.h"
 
-1488941664 source:c:\users\isle\data\cb\zdm\naivegalaser\naivega\core.cpp
+1490019195 source:c:\users\isle\data\cb\zdm\naivegalaser\naivega\core.cpp
 	"core.h"
 	<iostream>
 	<string>
